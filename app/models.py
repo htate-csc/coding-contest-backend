@@ -1,16 +1,16 @@
+from typing import List
 import uuid
 from datetime import datetime, timezone
 
 from pydantic import EmailStr
 from sqlalchemy import DateTime
-from sqlmodel import Field, Relationship, SQLModel
+from sqlmodel import Field, Relationship, SQLModel, JSON
 
 
 def get_datetime_utc() -> datetime:
     return datetime.now(timezone.utc)
 
 
-# Shared properties
 class UserBase(SQLModel):
     email: EmailStr = Field(unique=True, index=True, max_length=255)
     is_active: bool = True
@@ -18,7 +18,6 @@ class UserBase(SQLModel):
     full_name: str | None = Field(default=None, max_length=255)
 
 
-# Properties to receive via API on creation
 class UserCreate(UserBase):
     password: str = Field(min_length=8, max_length=128)
 
@@ -29,9 +28,9 @@ class UserRegister(SQLModel):
     full_name: str | None = Field(default=None, max_length=255)
 
 
-# Properties to receive via API on update, all are optional
 class UserUpdate(UserBase):
-    email: EmailStr | None = Field(default=None, max_length=255)  # type: ignore[assignment]
+    email: EmailStr | None = Field(
+        default=None, max_length=255)
     password: str | None = Field(default=None, min_length=8, max_length=128)
 
 
@@ -45,18 +44,15 @@ class UpdatePassword(SQLModel):
     new_password: str = Field(min_length=8, max_length=128)
 
 
-# Database model, database table inferred from class name
 class User(UserBase, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     hashed_password: str
     created_at: datetime | None = Field(
         default_factory=get_datetime_utc,
-        sa_type=DateTime(timezone=True),  # type: ignore
+        sa_type=DateTime(timezone=True),
     )
-    items: list["Item"] = Relationship(back_populates="owner", cascade_delete=True)
 
 
-# Properties to return via API, id is always required
 class UserPublic(UserBase):
     id: uuid.UUID
     created_at: datetime | None = None
@@ -67,45 +63,145 @@ class UsersPublic(SQLModel):
     count: int
 
 
-# Shared properties
-class ItemBase(SQLModel):
+class ContestBase(SQLModel):
     title: str = Field(min_length=1, max_length=255)
-    description: str | None = Field(default=None, max_length=255)
+    start_at: datetime | None = Field(
+        ...,
+        sa_type=DateTime(timezone=True),
+    )
+    end_at: datetime | None = Field(
+        ...,
+        sa_type=DateTime(timezone=True),
+    )
 
 
-# Properties to receive on item creation
-class ItemCreate(ItemBase):
+class ContestCreate(ContestBase):
     pass
 
 
-# Properties to receive on item update
-class ItemUpdate(ItemBase):
-    title: str | None = Field(default=None, min_length=1, max_length=255)  # type: ignore[assignment]
+class ContestUpdate(ContestBase):
+    pass
 
 
-# Database model, database table inferred from class name
-class Item(ItemBase, table=True):
+class Contest(ContestBase, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     created_at: datetime | None = Field(
         default_factory=get_datetime_utc,
-        sa_type=DateTime(timezone=True),  # type: ignore
+        sa_type=DateTime(timezone=True),
     )
-    owner_id: uuid.UUID = Field(
-        foreign_key="user.id", nullable=False, ondelete="CASCADE"
+    updated_at: datetime | None = Field(
+        default_factory=get_datetime_utc,
+        sa_type=DateTime(timezone=True),
+        sa_column_kwargs={
+            "onupdate": get_datetime_utc
+        },
     )
-    owner: User | None = Relationship(back_populates="items")
 
 
-# Properties to return via API, id is always required
-class ItemPublic(ItemBase):
+class ContestPublic(ContestBase):
     id: uuid.UUID
-    owner_id: uuid.UUID
     created_at: datetime | None = None
+    updated_at: datetime | None = None
 
 
-class ItemsPublic(SQLModel):
-    data: list[ItemPublic]
+class ContestsPublic(SQLModel):
+    data: list[ContestPublic]
     count: int
+
+
+class TestCaseSample(SQLModel):
+    input: str
+    output: str
+
+
+class ProblemBase(SQLModel):
+    name: str = Field(min_length=1, max_length=255)
+    time_limit: str = Field(
+        ...,
+        pattern=r"^[0-9,]+$"
+    )
+    memory_limit: int
+    content: str = Field(min_length=1, max_length=1000)
+    input_format: str = Field(min_length=1, max_length=1000)
+    output_format: str = Field(min_length=1, max_length=1000)
+    samples: List[TestCaseSample] = Field(
+        ...,
+        sa_type=JSON,
+        min_length=3,
+        max_length=3
+    )
+
+
+class ProblemCreate(ProblemBase):
+    pass
+
+
+class ProblemUpdate(ProblemBase):
+    name: str | None = Field(default=None, min_length=1, max_length=255)
+    time_limit: str | None = Field(
+        default=None,
+        pattern=r"^[0-9,]+$"
+    )
+    memory_limit: int | None = Field(default=None)
+    content: str | None = Field(default=None, min_length=1, max_length=1000)
+    input_format: str | None = Field(
+        default=None, min_length=1, max_length=1000)
+    output_format: str | None = Field(
+        default=None, min_length=1, max_length=1000)
+    samples: List[TestCaseSample] | None = Field(
+        default=None,
+        sa_type=JSON,
+        min_length=3,
+        max_length=3
+    )
+
+
+class Problem(ProblemBase, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    created_at: datetime | None = Field(
+        default_factory=get_datetime_utc,
+        sa_type=DateTime(timezone=True),
+    )
+    updated_at: datetime | None = Field(
+        default_factory=get_datetime_utc,
+        sa_type=DateTime(timezone=True),
+        sa_column_kwargs={
+            "onupdate": get_datetime_utc
+        },
+    )
+
+
+class ProblemPublic(ProblemBase):
+    id: uuid.UUID
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+
+
+class ProblemsPublic(SQLModel):
+    data: list[ProblemPublic]
+    count: int
+
+
+class ContestProblemsBase(SQLModel):
+    problem_id: int = Field(..., foreign_key="problem.id")
+    contest_id: int = Field(..., foreign_key="contest.id")
+    order_num: int = Field(default=0)
+
+
+class ContestProblemsCreate(ContestProblemsBase):
+    pass
+
+
+class ContestProblemsUpdate(ContestProblemsBase):
+    pass
+
+
+class ContestProblems(ContestProblemsBase):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+
+
+class ContestProblemsPublic(ContestProblemsBase):
+    id: uuid.UUID
 
 
 # Generic message

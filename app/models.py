@@ -118,7 +118,7 @@ class ProblemBase(SQLModel):
     name: str = Field(min_length=1, max_length=255)
     time_limit: str = Field(
         ...,
-        pattern=r"^[0-9,]+$"
+        regex=r"^[0-9,]+$"
     )
     memory_limit: int
     content: str = Field(min_length=1, max_length=1000)
@@ -140,7 +140,7 @@ class ProblemUpdate(ProblemBase):
     name: str | None = Field(default=None, min_length=1, max_length=255)
     time_limit: str | None = Field(
         default=None,
-        pattern=r"^[0-9,]+$"
+        regex=r"^[0-9,]+$"
     )
     memory_limit: int | None = Field(default=None)
     content: str | None = Field(default=None, min_length=1, max_length=1000)

@@ -12,6 +12,9 @@ from jwt.exceptions import InvalidTokenError
 from app.core import security
 from app.core.config import settings
 
+from sqlmodel import and_
+from app.models import Contest
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -121,3 +124,11 @@ def verify_password_reset_token(token: str) -> str | None:
         return str(decoded_token["sub"])
     except InvalidTokenError:
         return None
+
+
+def get_active_contest_filters():
+    now = datetime.now(timezone.utc)
+    return and_(
+        Contest.start_at <= now,
+        Contest.end_at >= now
+    )

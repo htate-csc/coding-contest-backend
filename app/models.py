@@ -96,6 +96,8 @@ class Contest(ContestBase, table=True):
             "onupdate": get_datetime_utc
         },
     )
+    problem_links: list["ContestProblems"] = Relationship(
+        back_populates="contest")
 
 
 class ContestPublic(ContestBase):
@@ -169,6 +171,8 @@ class Problem(ProblemBase, table=True):
             "onupdate": get_datetime_utc
         },
     )
+    contest_links: list["ContestProblems"] = Relationship(
+        back_populates="problem")
 
 
 class ProblemPublic(ProblemBase):
@@ -183,8 +187,8 @@ class ProblemsPublic(SQLModel):
 
 
 class ContestProblemsBase(SQLModel):
-    problem_id: int = Field(..., foreign_key="problem.id")
-    contest_id: int = Field(..., foreign_key="contest.id")
+    problem_id: uuid.UUID = Field(..., foreign_key="problem.id")
+    contest_id: uuid.UUID = Field(..., foreign_key="contest.id")
     order_num: int = Field(default=0)
 
 
@@ -196,8 +200,10 @@ class ContestProblemsUpdate(ContestProblemsBase):
     pass
 
 
-class ContestProblems(ContestProblemsBase):
+class ContestProblems(ContestProblemsBase, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    contest: "Contest" = Relationship(back_populates="problem_links")
+    problem: "Problem" = Relationship(back_populates="contest_links")
 
 
 class ContestProblemsPublic(ContestProblemsBase):

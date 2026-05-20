@@ -9,7 +9,7 @@ from app.api.deps import CurrentUser, SessionDep
 from app.models import Contest, ContestCreate, ContestPublic, ContestsPublic, ContestUpdate, Message
 from app.utils import get_active_contest_filters
 
-router = APIRouter(prefix="/Contests", tags=["Contests"])
+router = APIRouter(prefix="/contests", tags=["contests"])
 
 
 @router.get("/", response_model=ContestsPublic)
@@ -42,11 +42,11 @@ def read_Contests(
         )
 
     count = session.exec(count_statement).one()
-    contests = session.exec(statement).all()
+    db_contests = session.exec(statement).all()
 
-    Contests_public = [ContestPublic.model_validate(
-        Contest) for c in contests]
-    return ContestsPublic(data=Contests_public, count=count)
+    db_contests_public = [ContestPublic.model_validate(
+        c) for c in db_contests]
+    return ContestsPublic(data=db_contests_public, count=count)
 
 
 @router.get("/{id}", response_model=ContestPublic)
@@ -54,34 +54,34 @@ def read_Contest(session: SessionDep, current_user: CurrentUser, id: uuid.UUID) 
     """
     Get Contest by ID.
     """
-    contest = session.get(Contest, id)
+    db_contest = session.get(Contest, id)
     now = datetime.now(timezone.utc)
-    if not contest:
+    if not db_contest:
         raise HTTPException(status_code=404, detail="Contest not found")
-    if not current_user.is_superuser and (contest.start_at <= now <= contest.end_at):
+    if not current_user.is_superuser and (db_contest.start_at <= now <= db_contest.end_at):
         raise HTTPException(status_code=403, detail="Not enough permissions")
-    return contest
+    return db_contest
 
 
 @router.post("/", response_model=ContestPublic)
-def create_Contest(
+def create_contest(
     *, session: SessionDep, current_user: CurrentUser, Contest_in: ContestCreate
 ) -> Any:
     """
     Create new Contest.
     """
-    Contest = Contest.model_validate(
+    db_contest = db_contest.model_validate(
         Contest_in)
-    session.add(Contest)
+    session.add(db_contest)
     session.commit()
-    session.refresh(Contest)
+    session.refresh(db_contest)
     if not current_user.is_superuser:
         raise HTTPException(status_code=403, detail="Not enough permissions")
-    return Contest
+    return db_contest
 
 
 @router.put("/{id}", response_model=ContestPublic)
-def update_Contest(
+def update_contest(
     *,
     session: SessionDep,
     current_user: CurrentUser,
@@ -91,31 +91,31 @@ def update_Contest(
     """
     Update an Contest.
     """
-    Contest = session.get(Contest, id)
-    if not Contest:
+    db_contest = session.get(Contest, id)
+    if not db_contest:
         raise HTTPException(status_code=404, detail="Contest not found")
     if not current_user.is_superuser:
         raise HTTPException(status_code=403, detail="Not enough permissions")
     update_dict = Contest_in.model_dump(exclude_unset=True)
-    Contest.sqlmodel_update(update_dict)
-    session.add(Contest)
+    db_contest.sqlmodel_update(update_dict)
+    session.add(db_contest)
     session.commit()
-    session.refresh(Contest)
-    return Contest
+    session.refresh(db_contest)
+    return db_contest
 
 
 @router.delete("/{id}")
-def delete_Contest(
+def delete_contest(
     session: SessionDep, current_user: CurrentUser, id: uuid.UUID
 ) -> Message:
     """
     Delete an Contest.
     """
-    Contest = session.get(Contest, id)
-    if not Contest:
+    db_contest = session.get(Contest, id)
+    if not db_contest:
         raise HTTPException(status_code=404, detail="Contest not found")
     if not current_user.is_superuser:
         raise HTTPException(status_code=403, detail="Not enough permissions")
-    session.delete(Contest)
+    session.delete(db_contest)
     session.commit()
     return Message(message="Contest deleted successfully")

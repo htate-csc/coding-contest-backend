@@ -86,7 +86,7 @@ def update_problem(
     """
     Update an Problem.
     """
-    db_problem = session.get(db_problem, id)
+    db_problem = session.get(Problem, id)
     if not db_problem:
         raise HTTPException(status_code=404, detail="Problem not found")
     if not current_user.is_superuser:

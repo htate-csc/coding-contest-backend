@@ -37,7 +37,7 @@ def update_contest_problems(
     """
     Update an ContestProblems.
     """
-    db_contest_problems = session.get(db_contest_problems, id)
+    db_contest_problems = session.get(ContestProblems, id)
     if not db_contest_problems:
         raise HTTPException(
             status_code=404, detail="ContestProblems not found")

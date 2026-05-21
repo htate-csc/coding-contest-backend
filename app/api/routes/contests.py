@@ -65,13 +65,13 @@ def read_Contest(session: SessionDep, current_user: CurrentUser, id: uuid.UUID) 
 
 @router.post("/", response_model=ContestPublic)
 def create_contest(
-    *, session: SessionDep, current_user: CurrentUser, Contest_in: ContestCreate
+    *, session: SessionDep, current_user: CurrentUser, contest_in: ContestCreate
 ) -> Any:
     """
     Create new Contest.
     """
-    db_contest = db_contest.model_validate(
-        Contest_in)
+    db_contest = Contest.model_validate(
+        contest_in)
     session.add(db_contest)
     session.commit()
     session.refresh(db_contest)
@@ -86,7 +86,7 @@ def update_contest(
     session: SessionDep,
     current_user: CurrentUser,
     id: uuid.UUID,
-    Contest_in: ContestUpdate,
+    contest_in: ContestUpdate,
 ) -> Any:
     """
     Update an Contest.
@@ -96,7 +96,7 @@ def update_contest(
         raise HTTPException(status_code=404, detail="Contest not found")
     if not current_user.is_superuser:
         raise HTTPException(status_code=403, detail="Not enough permissions")
-    update_dict = Contest_in.model_dump(exclude_unset=True)
+    update_dict = contest_in.model_dump(exclude_unset=True)
     db_contest.sqlmodel_update(update_dict)
     session.add(db_contest)
     session.commit()

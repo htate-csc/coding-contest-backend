@@ -126,16 +126,15 @@ class ProblemBase(SQLModel):
     content: str = Field(min_length=1, max_length=1000)
     input_format: str = Field(min_length=1, max_length=1000)
     output_format: str = Field(min_length=1, max_length=1000)
+
+
+class ProblemCreate(ProblemBase):
     samples: List[TestCaseSample] = Field(
         ...,
         sa_type=JSON,
         min_length=3,
         max_length=3
     )
-
-
-class ProblemCreate(ProblemBase):
-    pass
 
 
 class ProblemUpdate(ProblemBase):
@@ -173,10 +172,12 @@ class Problem(ProblemBase, table=True):
     )
     contest_links: list["ContestProblems"] = Relationship(
         back_populates="problem")
+    samples: List[dict] = Field(sa_type=JSON)
 
 
 class ProblemPublic(ProblemBase):
     id: uuid.UUID
+    samples: List[TestCaseSample]
     created_at: datetime | None = None
     updated_at: datetime | None = None
 

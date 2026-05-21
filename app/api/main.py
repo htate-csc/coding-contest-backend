@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.routes import contests, login, private, users, utils
+from app.api.routes import contests, problems, contest_problems, login, private, users, utils
 from app.core.config import settings
 
 api_router = APIRouter()
@@ -8,6 +8,8 @@ api_router.include_router(login.router)
 api_router.include_router(users.router)
 api_router.include_router(utils.router)
 api_router.include_router(contests.router)
+api_router.include_router(problems.router)
+api_router.include_router(contest_problems.router)
 
 
 if settings.ENVIRONMENT == "local":

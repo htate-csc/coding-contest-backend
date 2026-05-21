@@ -60,18 +60,18 @@ def read_problem(session: SessionDep, current_user: CurrentUser, id: uuid.UUID) 
 
 @router.post("/", response_model=ProblemPublic)
 def create_problem(
-    *, session: SessionDep, current_user: CurrentUser, Problem_in: ProblemCreate
+    *, session: SessionDep, current_user: CurrentUser, problem_in: ProblemCreate
 ) -> Any:
     """
     Create new Problem.
     """
+    if not current_user.is_superuser:
+        raise HTTPException(status_code=403, detail="Not enough permissions")
     db_problem = Problem.model_validate(
-        Problem_in)
+        problem_in.model_dump())
     session.add(db_problem)
     session.commit()
     session.refresh(db_problem)
-    if not current_user.is_superuser:
-        raise HTTPException(status_code=403, detail="Not enough permissions")
     return db_problem
 
 
@@ -81,7 +81,7 @@ def update_problem(
     session: SessionDep,
     current_user: CurrentUser,
     id: uuid.UUID,
-    Problem_in: ProblemUpdate,
+    problem_in: ProblemUpdate,
 ) -> Any:
     """
     Update an Problem.
@@ -91,7 +91,7 @@ def update_problem(
         raise HTTPException(status_code=404, detail="Problem not found")
     if not current_user.is_superuser:
         raise HTTPException(status_code=403, detail="Not enough permissions")
-    update_dict = Problem_in.model_dump(exclude_unset=True)
+    update_dict = problem_in.model_dump(exclude_unset=True)
     db_problem.sqlmodel_update(update_dict)
     session.add(db_problem)
     session.commit()

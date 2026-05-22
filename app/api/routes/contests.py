@@ -7,46 +7,44 @@ from sqlmodel import col, func, select
 
 from app.api.deps import CurrentUser, SessionDep
 from app.models import Contest, ContestCreate, ContestPublic, ContestsPublic, ContestUpdate, Message
-from app.utils import get_active_contest_filters
 
 router = APIRouter(prefix="/contests", tags=["contests"])
 
 
 @router.get("/", response_model=ContestsPublic)
 def read_Contests(
-    session: SessionDep, current_user: CurrentUser, skip: int = 0, limit: int = 100
+    session: SessionDep,
+    current_user: CurrentUser,
+    status: str | None = None,
+    skip: int = 0,
+    limit: int = 100,
 ) -> Any:
     """
     Retrieve Contests.
     """
+    if not current_user.is_superuser:
+        if status != "ongoing":
+            raise HTTPException(status_code=403, detail="Not enough permissions")
 
-    if current_user.is_superuser:
-        count_statement = select(func.count()).select_from(Contest)
-        statement = (
-            select(Contest).order_by(
-                col(Contest.created_at).desc()).offset(skip).limit(limit)
-        )
-    else:
-        active_filters = get_active_contest_filters()
-        count_statement = (
-            select(func.count())
-            .select_from(Contest)
-            .where(active_filters)
-        )
-        statement = (
-            select(Contest)
-            .where(active_filters)
-            .order_by(col(Contest.created_at).desc())
-            .offset(skip)
-            .limit(limit)
-        )
+    now = datetime.now(timezone.utc)
+    query = select(Contest)
 
+    if status == "ongoing":
+        query = query.where(Contest.start_at <= now, Contest.end_at >= now)
+    elif status == "scheduled":
+        query = query.where(Contest.start_at > now)
+    elif status == "finished":
+        query = query.where(Contest.end_at < now)
+
+    db_contests = session.exec(
+        query.order_by(col(Contest.start_at).asc()).offset(skip).limit(limit)
+    ).all()
+
+    count_statement = select(func.count()).select_from(query.subquery())
     count = session.exec(count_statement).one()
-    db_contests = session.exec(statement).all()
 
-    db_contests_public = [ContestPublic.model_validate(
-        c) for c in db_contests]
-    return ContestsPublic(data=db_contests_public, count=count)
+    data = [ContestPublic.model_validate(c) for c in db_contests]
+    return ContestsPublic(data=data, count=count)
 
 
 @router.get("/{id}", response_model=ContestPublic)

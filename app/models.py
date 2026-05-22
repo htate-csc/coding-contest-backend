@@ -101,6 +101,7 @@ class ContestPublic(ContestBase):
     id: uuid.UUID
     created_at: datetime | None = None
     updated_at: datetime | None = None
+    problem_links: list["ContestProblemsPublic"] = []
 
 
 class ContestsPublic(SQLModel):

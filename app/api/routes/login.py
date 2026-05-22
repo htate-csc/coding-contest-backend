@@ -28,12 +28,10 @@ def login_access_token(
     OAuth2 compatible token login, get an access token for future requests
     """
     user = crud.authenticate(
-        session=session, email=form_data.username, password=form_data.password
+        session=session, login_id=form_data.username, password=form_data.password
     )
     if not user:
-        raise HTTPException(status_code=400, detail="Incorrect email or password")
-    elif not user.is_active:
-        raise HTTPException(status_code=400, detail="Inactive user")
+        raise HTTPException(status_code=400, detail="Incorrect login ID or password")
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     return Token(
         access_token=security.create_access_token(
@@ -50,27 +48,27 @@ def test_token(current_user: CurrentUser) -> Any:
     return current_user
 
 
-@router.post("/password-recovery/{email}")
-def recover_password(email: str, session: SessionDep) -> Message:
+@router.post("/password-recovery/{login_id}")
+def recover_password(login_id: str, session: SessionDep) -> Message:
     """
     Password Recovery
     """
-    user = crud.get_user_by_email(session=session, email=email)
+    user = crud.get_user_by_login_id(session=session, login_id=login_id)
 
-    # Always return the same response to prevent email enumeration attacks
+    # Always return the same response to prevent enumeration attacks
     # Only send email if user actually exists
     if user:
-        password_reset_token = generate_password_reset_token(email=email)
+        password_reset_token = generate_password_reset_token(login_id=login_id)
         email_data = generate_reset_password_email(
-            email_to=user.email, email=email, token=password_reset_token
+            login_id=login_id, token=password_reset_token
         )
         send_email(
-            email_to=user.email,
+            email_to=login_id,
             subject=email_data.subject,
             html_content=email_data.html_content,
         )
     return Message(
-        message="If that email is registered, we sent a password recovery link"
+        message="If that login ID is registered, we sent a password recovery link"
     )
 
 
@@ -79,15 +77,13 @@ def reset_password(session: SessionDep, body: NewPassword) -> Message:
     """
     Reset password
     """
-    email = verify_password_reset_token(token=body.token)
-    if not email:
+    login_id = verify_password_reset_token(token=body.token)
+    if not login_id:
         raise HTTPException(status_code=400, detail="Invalid token")
-    user = crud.get_user_by_email(session=session, email=email)
+    user = crud.get_user_by_login_id(session=session, login_id=login_id)
     if not user:
         # Don't reveal that the user doesn't exist - use same error as invalid token
         raise HTTPException(status_code=400, detail="Invalid token")
-    elif not user.is_active:
-        raise HTTPException(status_code=400, detail="Inactive user")
     user_in_update = UserUpdate(password=body.new_password)
     crud.update_user(
         session=session,
@@ -98,24 +94,24 @@ def reset_password(session: SessionDep, body: NewPassword) -> Message:
 
 
 @router.post(
-    "/password-recovery-html-content/{email}",
+    "/password-recovery-html-content/{login_id}",
     dependencies=[Depends(get_current_active_superuser)],
     response_class=HTMLResponse,
 )
-def recover_password_html_content(email: str, session: SessionDep) -> Any:
+def recover_password_html_content(login_id: str, session: SessionDep) -> Any:
     """
     HTML Content for Password Recovery
     """
-    user = crud.get_user_by_email(session=session, email=email)
+    user = crud.get_user_by_login_id(session=session, login_id=login_id)
 
     if not user:
         raise HTTPException(
             status_code=404,
-            detail="The user with this username does not exist in the system.",
+            detail="The user with this login ID does not exist in the system.",
         )
-    password_reset_token = generate_password_reset_token(email=email)
+    password_reset_token = generate_password_reset_token(login_id=login_id)
     email_data = generate_reset_password_email(
-        email_to=user.email, email=email, token=password_reset_token
+        login_id=login_id, token=password_reset_token
     )
 
     return HTMLResponse(

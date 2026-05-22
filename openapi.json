@@ -74,7 +74,7 @@
         ]
       }
     },
-    "/api/v1/password-recovery/{email}": {
+    "/api/v1/password-recovery/{login_id}": {
       "post": {
         "tags": [
           "login"
@@ -84,12 +84,12 @@
         "operationId": "login-recover_password",
         "parameters": [
           {
-            "name": "email",
+            "name": "login_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
-              "title": "Email"
+              "title": "Login Id"
             }
           }
         ],
@@ -159,7 +159,7 @@
         }
       }
     },
-    "/api/v1/password-recovery-html-content/{email}": {
+    "/api/v1/password-recovery-html-content/{login_id}": {
       "post": {
         "tags": [
           "login"
@@ -174,12 +174,12 @@
         ],
         "parameters": [
           {
-            "name": "email",
+            "name": "login_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
-              "title": "Email"
+              "title": "Login Id"
             }
           }
         ],
@@ -1811,9 +1811,9 @@
       },
       "PrivateUserCreate": {
         "properties": {
-          "email": {
+          "login_id": {
             "type": "string",
-            "title": "Email"
+            "title": "Login Id"
           },
           "password": {
             "type": "string",
@@ -1831,7 +1831,7 @@
         },
         "type": "object",
         "required": [
-          "email",
+          "login_id",
           "password",
           "full_name"
         ],
@@ -2154,16 +2154,10 @@
       },
       "UserCreate": {
         "properties": {
-          "email": {
+          "login_id": {
             "type": "string",
             "maxLength": 255,
-            "format": "email",
-            "title": "Email"
-          },
-          "is_active": {
-            "type": "boolean",
-            "title": "Is Active",
-            "default": true
+            "title": "Login Id"
           },
           "is_superuser": {
             "type": "boolean",
@@ -2191,23 +2185,17 @@
         },
         "type": "object",
         "required": [
-          "email",
+          "login_id",
           "password"
         ],
         "title": "UserCreate"
       },
       "UserPublic": {
         "properties": {
-          "email": {
+          "login_id": {
             "type": "string",
             "maxLength": 255,
-            "format": "email",
-            "title": "Email"
-          },
-          "is_active": {
-            "type": "boolean",
-            "title": "Is Active",
-            "default": true
+            "title": "Login Id"
           },
           "is_superuser": {
             "type": "boolean",
@@ -2246,18 +2234,17 @@
         },
         "type": "object",
         "required": [
-          "email",
+          "login_id",
           "id"
         ],
         "title": "UserPublic"
       },
       "UserRegister": {
         "properties": {
-          "email": {
+          "login_id": {
             "type": "string",
             "maxLength": 255,
-            "format": "email",
-            "title": "Email"
+            "title": "Login Id"
           },
           "password": {
             "type": "string",
@@ -2280,30 +2267,24 @@
         },
         "type": "object",
         "required": [
-          "email",
+          "login_id",
           "password"
         ],
         "title": "UserRegister"
       },
       "UserUpdate": {
         "properties": {
-          "email": {
+          "login_id": {
             "anyOf": [
               {
                 "type": "string",
-                "maxLength": 255,
-                "format": "email"
+                "maxLength": 255
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Email"
-          },
-          "is_active": {
-            "type": "boolean",
-            "title": "Is Active",
-            "default": true
+            "title": "Login Id"
           },
           "is_superuser": {
             "type": "boolean",
@@ -2353,18 +2334,17 @@
             ],
             "title": "Full Name"
           },
-          "email": {
+          "login_id": {
             "anyOf": [
               {
                 "type": "string",
-                "maxLength": 255,
-                "format": "email"
+                "maxLength": 255
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Email"
+            "title": "Login Id"
           }
         },
         "type": "object",

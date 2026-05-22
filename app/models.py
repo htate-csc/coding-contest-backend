@@ -2,7 +2,6 @@ from typing import List
 import uuid
 from datetime import datetime, timezone
 
-from pydantic import EmailStr
 from sqlalchemy import DateTime
 from sqlmodel import Field, Relationship, SQLModel, JSON
 
@@ -12,8 +11,7 @@ def get_datetime_utc() -> datetime:
 
 
 class UserBase(SQLModel):
-    email: EmailStr = Field(unique=True, index=True, max_length=255)
-    is_active: bool = True
+    login_id: str = Field(unique=True, index=True, max_length=255)
     is_superuser: bool = False
     full_name: str | None = Field(default=None, max_length=255)
 
@@ -23,20 +21,19 @@ class UserCreate(UserBase):
 
 
 class UserRegister(SQLModel):
-    email: EmailStr = Field(max_length=255)
+    login_id: str = Field(max_length=255)
     password: str = Field(min_length=8, max_length=128)
     full_name: str | None = Field(default=None, max_length=255)
 
 
 class UserUpdate(UserBase):
-    email: EmailStr | None = Field(
-        default=None, max_length=255)
+    login_id: str | None = Field(default=None, max_length=255)
     password: str | None = Field(default=None, min_length=8, max_length=128)
 
 
 class UserUpdateMe(SQLModel):
     full_name: str | None = Field(default=None, max_length=255)
-    email: EmailStr | None = Field(default=None, max_length=255)
+    login_id: str | None = Field(default=None, max_length=255)
 
 
 class UpdatePassword(SQLModel):

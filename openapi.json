@@ -1854,7 +1854,9 @@
             "title": "Name"
           },
           "time_limit": {
-            "type": "string",
+            "type": "number",
+            "maximum": 2000.0,
+            "exclusiveMinimum": 0.0,
             "title": "Time Limit"
           },
           "memory_limit": {
@@ -1910,7 +1912,9 @@
             "title": "Name"
           },
           "time_limit": {
-            "type": "string",
+            "type": "number",
+            "maximum": 2000.0,
+            "exclusiveMinimum": 0.0,
             "title": "Time Limit"
           },
           "memory_limit": {
@@ -2003,7 +2007,9 @@
           "time_limit": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "number",
+                "maximum": 2000.0,
+                "exclusiveMinimum": 0.0
               },
               {
                 "type": "null"

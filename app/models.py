@@ -2,7 +2,7 @@ from typing import List
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime
+from sqlalchemy import DateTime, Numeric
 from sqlmodel import Field, Relationship, SQLModel, JSON
 
 
@@ -117,9 +117,11 @@ class TestCaseSample(SQLModel):
 
 class ProblemBase(SQLModel):
     name: str = Field(min_length=1, max_length=255)
-    time_limit: str = Field(
+    time_limit: float = Field(
         ...,
-        regex=r"^[0-9,]+$"
+        sa_type=Numeric(precision=10, scale=3),
+        gt=0,
+        le=2000
     )
     memory_limit: int
     content: str = Field(min_length=1, max_length=1000)
@@ -138,9 +140,11 @@ class ProblemCreate(ProblemBase):
 
 class ProblemUpdate(ProblemBase):
     name: str | None = Field(default=None, min_length=1, max_length=255)
-    time_limit: str | None = Field(
+    time_limit: float | None = Field(
         default=None,
-        regex=r"^[0-9,]+$"
+        sa_type=Numeric(precision=10, scale=3),
+        gt=0,
+        le=2000
     )
     memory_limit: int | None = Field(default=None)
     content: str | None = Field(default=None, min_length=1, max_length=1000)

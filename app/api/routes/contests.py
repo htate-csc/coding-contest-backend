@@ -27,7 +27,7 @@ def read_Contests(
             raise HTTPException(status_code=403, detail="Not enough permissions")
 
     now = datetime.now(timezone.utc)
-    query = select(Contest)
+    query = select(Contest).where(Contest.is_deleted == False)
 
     if status == "ongoing":
         query = query.where(Contest.start_at <= now, Contest.end_at >= now)
@@ -54,7 +54,7 @@ def read_Contest(session: SessionDep, current_user: CurrentUser, id: uuid.UUID) 
     """
     db_contest = session.get(Contest, id)
     now = datetime.now(timezone.utc)
-    if not db_contest:
+    if not db_contest or db_contest.is_deleted:
         raise HTTPException(status_code=404, detail="Contest not found")
     if not current_user.is_superuser and (db_contest.start_at <= now <= db_contest.end_at):
         raise HTTPException(status_code=403, detail="Not enough permissions")
@@ -90,7 +90,7 @@ def update_contest(
     Update an Contest.
     """
     db_contest = session.get(Contest, id)
-    if not db_contest:
+    if not db_contest or db_contest.is_deleted:
         raise HTTPException(status_code=404, detail="Contest not found")
     if not current_user.is_superuser:
         raise HTTPException(status_code=403, detail="Not enough permissions")
@@ -110,10 +110,11 @@ def delete_contest(
     Delete an Contest.
     """
     db_contest = session.get(Contest, id)
-    if not db_contest:
+    if not db_contest or db_contest.is_deleted:
         raise HTTPException(status_code=404, detail="Contest not found")
     if not current_user.is_superuser:
         raise HTTPException(status_code=403, detail="Not enough permissions")
-    session.delete(db_contest)
+    db_contest.is_deleted = True
+    session.add(db_contest)
     session.commit()
     return Message(message="Contest deleted successfully")

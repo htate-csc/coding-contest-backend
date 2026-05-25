@@ -82,6 +82,7 @@ class ContestUpdate(ContestBase):
 
 class Contest(ContestBase, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    is_deleted: bool = Field(default=False, index=True)
     created_at: datetime | None = Field(
         default_factory=get_datetime_utc,
         sa_type=DateTime(timezone=True),

@@ -1595,6 +1595,16 @@
             "type": "string",
             "format": "uuid",
             "title": "Id"
+          },
+          "problem": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProblemMinimal"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -1902,6 +1912,35 @@
           "samples"
         ],
         "title": "ProblemCreate"
+      },
+      "ProblemMinimal": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "time_limit": {
+            "type": "number",
+            "title": "Time Limit"
+          },
+          "memory_limit": {
+            "type": "integer",
+            "title": "Memory Limit"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "time_limit",
+          "memory_limit"
+        ],
+        "title": "ProblemMinimal"
       },
       "ProblemPublic": {
         "properties": {

@@ -210,8 +210,16 @@ class ContestProblems(ContestProblemsBase, table=True):
     problem: "Problem" = Relationship(back_populates="contest_links")
 
 
+class ProblemMinimal(SQLModel):
+    id: uuid.UUID
+    name: str
+    time_limit: float
+    memory_limit: int
+
+
 class ContestProblemsPublic(ContestProblemsBase):
     id: uuid.UUID
+    problem: ProblemMinimal | None = None
 
 
 # Generic message

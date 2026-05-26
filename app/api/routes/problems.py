@@ -67,6 +67,16 @@ def create_problem(
     """
     if not current_user.is_superuser:
         raise HTTPException(status_code=403, detail="Not enough permissions")
+    
+    # Check if a problem with the same name already exists
+    statement = select(Problem).where(Problem.name == problem_in.name)
+    existing_problem = session.exec(statement).first()
+    if existing_problem:
+        raise HTTPException(
+            status_code=400,
+            detail="同じ名前の問題が既に存在します"
+        )
+
     db_problem = Problem.model_validate(
         problem_in.model_dump())
     session.add(db_problem)
@@ -91,6 +101,20 @@ def update_problem(
         raise HTTPException(status_code=404, detail="Problem not found")
     if not current_user.is_superuser:
         raise HTTPException(status_code=403, detail="Not enough permissions")
+    
+    # Check if the name is being updated and if the new name is already taken by another problem
+    if problem_in.name is not None:
+        statement = select(Problem).where(
+            Problem.name == problem_in.name,
+            Problem.id != id
+        )
+        existing_problem = session.exec(statement).first()
+        if existing_problem:
+            raise HTTPException(
+                status_code=400,
+                detail="同じ名前の問題が既に存在します"
+            )
+
     update_dict = problem_in.model_dump(exclude_unset=True)
     db_problem.sqlmodel_update(update_dict)
     session.add(db_problem)

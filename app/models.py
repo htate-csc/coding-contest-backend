@@ -116,7 +116,7 @@ class TestCaseSample(SQLModel):
 
 
 class ProblemBase(SQLModel):
-    name: str = Field(min_length=1, max_length=255)
+    name: str = Field(min_length=1, max_length=255, unique=True, index=True)
     time_limit: float = Field(
         ...,
         sa_type=Numeric(precision=10, scale=3),

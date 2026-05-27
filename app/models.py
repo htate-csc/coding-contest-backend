@@ -1,9 +1,8 @@
-from typing import List
 import uuid
 from datetime import datetime, timezone
 
 from sqlalchemy import DateTime, Numeric
-from sqlmodel import Field, Relationship, SQLModel, JSON
+from sqlmodel import JSON, Field, Relationship, SQLModel
 
 
 def get_datetime_utc() -> datetime:
@@ -110,6 +109,19 @@ class ContestsPublic(SQLModel):
     count: int
 
 
+class ContestSummaryPublic(SQLModel):
+    id: uuid.UUID
+    title: str
+    start_at: datetime
+    end_at: datetime
+
+
+class ContestSummariesPublic(SQLModel):
+    data: list[ContestSummaryPublic]
+    count: int
+    server_now: datetime
+
+
 class TestCaseSample(SQLModel):
     input: str
     output: str
@@ -130,7 +142,7 @@ class ProblemBase(SQLModel):
 
 
 class ProblemCreate(ProblemBase):
-    samples: List[TestCaseSample] = Field(
+    samples: list[TestCaseSample] = Field(
         ...,
         sa_type=JSON,
         min_length=3,
@@ -152,7 +164,7 @@ class ProblemUpdate(ProblemBase):
         default=None, min_length=1, max_length=1000)
     output_format: str | None = Field(
         default=None, min_length=1, max_length=1000)
-    samples: List[TestCaseSample] | None = Field(
+    samples: list[TestCaseSample] | None = Field(
         default=None,
         sa_type=JSON,
         min_length=3,
@@ -175,12 +187,12 @@ class Problem(ProblemBase, table=True):
     )
     contest_links: list["ContestProblems"] = Relationship(
         back_populates="problem")
-    samples: List[dict] = Field(sa_type=JSON)
+    samples: list[dict] = Field(sa_type=JSON)
 
 
 class ProblemPublic(ProblemBase):
     id: uuid.UUID
-    samples: List[TestCaseSample]
+    samples: list[TestCaseSample]
     created_at: datetime | None = None
     updated_at: datetime | None = None
 
@@ -220,6 +232,11 @@ class ProblemMinimal(SQLModel):
 class ContestProblemsPublic(ContestProblemsBase):
     id: uuid.UUID
     problem: ProblemMinimal | None = None
+
+
+class ContestProblemsListPublic(SQLModel):
+    data: list[ContestProblemsPublic]
+    count: int
 
 
 # Generic message

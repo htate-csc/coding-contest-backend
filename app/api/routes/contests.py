@@ -1,12 +1,23 @@
 import uuid
-from typing import Any
 from datetime import datetime, timezone
+from typing import Any
 
 from fastapi import APIRouter, HTTPException
 from sqlmodel import col, func, select
 
 from app.api.deps import CurrentUser, SessionDep
-from app.models import Contest, ContestCreate, ContestPublic, ContestsPublic, ContestUpdate, Message
+from app.models import (
+    Contest,
+    ContestCreate,
+    ContestProblems,
+    ContestProblemsListPublic,
+    ContestPublic,
+    ContestsPublic,
+    ContestSummariesPublic,
+    ContestSummaryPublic,
+    ContestUpdate,
+    Message,
+)
 
 router = APIRouter(prefix="/contests", tags=["contests"])
 
@@ -27,7 +38,7 @@ def read_Contests(
             raise HTTPException(status_code=403, detail="Not enough permissions")
 
     now = datetime.now(timezone.utc)
-    query = select(Contest).where(Contest.is_deleted == False)
+    query = select(Contest).where(Contest.is_deleted.is_(False))
 
     if status == "ongoing":
         query = query.where(Contest.start_at <= now, Contest.end_at >= now)
@@ -47,6 +58,68 @@ def read_Contests(
     return ContestsPublic(data=data, count=count)
 
 
+@router.get("/available", response_model=ContestSummariesPublic)
+def read_available_contests(
+    session: SessionDep,
+    current_user: CurrentUser,
+    skip: int = 0,
+    limit: int = 100,
+) -> Any:
+    """
+    Retrieve contests that may become visible to regular users.
+    """
+    if current_user.is_superuser:
+        raise HTTPException(status_code=403, detail="Not enough permissions")
+
+    now = datetime.now(timezone.utc)
+    # Reference: github/relative-time-element src/relative-time-element.ts:45-83.
+    # That implementation keeps only time-aware entries under observation and lets
+    # the client schedule the nearest future update. This endpoint returns the
+    # minimal contest time boundaries needed for that client-side scheduler.
+    query = select(Contest).where(Contest.is_deleted.is_(False), Contest.end_at >= now)
+
+    db_contests = session.exec(
+        query.order_by(col(Contest.start_at).asc()).offset(skip).limit(limit)
+    ).all()
+
+    count_statement = select(func.count()).select_from(query.subquery())
+    count = session.exec(count_statement).one()
+
+    data = [ContestSummaryPublic.model_validate(c) for c in db_contests]
+    return ContestSummariesPublic(data=data, count=count, server_now=now)
+
+
+@router.get("/{id}/problems", response_model=ContestProblemsListPublic)
+def read_contest_problems(
+    session: SessionDep,
+    current_user: CurrentUser,
+    id: uuid.UUID,
+) -> Any:
+    """
+    Retrieve problems for an ongoing contest.
+    """
+    db_contest = session.get(Contest, id)
+    now = datetime.now(timezone.utc)
+    if not db_contest or db_contest.is_deleted:
+        raise HTTPException(status_code=404, detail="Contest not found")
+    if not current_user.is_superuser and not (
+        db_contest.start_at <= now <= db_contest.end_at
+    ):
+        raise HTTPException(status_code=403, detail="Contest is not ongoing")
+
+    statement = (
+        select(ContestProblems)
+        .where(ContestProblems.contest_id == id)
+        .order_by(col(ContestProblems.order_num).asc())
+    )
+    contest_problems = session.exec(statement).all()
+
+    return ContestProblemsListPublic(
+        data=contest_problems,
+        count=len(contest_problems),
+    )
+
+
 @router.get("/{id}", response_model=ContestPublic)
 def read_Contest(session: SessionDep, current_user: CurrentUser, id: uuid.UUID) -> Any:
     """
@@ -56,7 +129,7 @@ def read_Contest(session: SessionDep, current_user: CurrentUser, id: uuid.UUID) 
     now = datetime.now(timezone.utc)
     if not db_contest or db_contest.is_deleted:
         raise HTTPException(status_code=404, detail="Contest not found")
-    if not current_user.is_superuser and (db_contest.start_at <= now <= db_contest.end_at):
+    if not current_user.is_superuser and not (db_contest.start_at <= now <= db_contest.end_at):
         raise HTTPException(status_code=403, detail="Not enough permissions")
     return db_contest
 
@@ -68,13 +141,14 @@ def create_contest(
     """
     Create new Contest.
     """
+    if not current_user.is_superuser:
+        raise HTTPException(status_code=403, detail="Not enough permissions")
+
     db_contest = Contest.model_validate(
         contest_in)
     session.add(db_contest)
     session.commit()
     session.refresh(db_contest)
-    if not current_user.is_superuser:
-        raise HTTPException(status_code=403, detail="Not enough permissions")
     return db_contest
 
 

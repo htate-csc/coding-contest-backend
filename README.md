@@ -17,6 +17,7 @@
 
 ## 前提
 
+- Python 3.10 以上 (推奨: 3.10.x, `pyproject.toml` では `>=3.10,<4.0` を規定)
 - uv
 - PostgreSQL
 - フロントエンド: [algo-camp-front-tate](https://github.com/htate-csc/algo-camp-front-tate)

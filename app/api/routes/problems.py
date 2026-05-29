@@ -55,7 +55,11 @@ def read_problem(session: SessionDep, current_user: CurrentUser, id: uuid.UUID) 
 
     if not is_accessible:
         raise HTTPException(status_code=403, detail="この問題へのアクセス権がありません")
-    return db_problem
+    
+    # Limit samples to at most 2 for general users
+    problem_public = ProblemPublic.model_validate(db_problem)
+    problem_public.samples = problem_public.samples[:2]
+    return problem_public
 
 
 @router.post("/", response_model=ProblemPublic)

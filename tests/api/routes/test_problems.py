@@ -236,3 +236,90 @@ def test_update_problem_duplicate(
         if db_problem:
             db.delete(db_problem)
             db.commit()
+
+
+def test_read_problem_samples_limit(
+    client: TestClient,
+    superuser_token_headers: dict[str, str],
+    normal_user_token_headers: dict[str, str],
+    db: Session,
+) -> None:
+    from datetime import datetime, timedelta, timezone
+    from app.models import Contest, ContestProblems
+
+    # 1. Create a problem with 3 samples
+    problem_data = {
+        "name": "Limit Test Problem",
+        "time_limit": 1.0,
+        "memory_limit": 256,
+        "content": "Description",
+        "input_format": "Input",
+        "output_format": "Output",
+        "samples": [
+            {"input": "in1", "output": "out1"},
+            {"input": "in2", "output": "out2"},
+            {"input": "in3", "output": "out3"}
+        ]
+    }
+    
+    # Make sure it doesn't already exist
+    existing = db.exec(select(Problem).where(Problem.name == "Limit Test Problem")).first()
+    if existing:
+        db.delete(existing)
+        db.commit()
+
+    resp = client.post(
+        f"{settings.API_V1_STR}/problems/",
+        headers=superuser_token_headers,
+        json=problem_data,
+    )
+    assert resp.status_code == 200
+    problem_id = resp.json()["id"]
+
+    # 2. Verify superuser gets all 3 samples
+    resp_super = client.get(
+        f"{settings.API_V1_STR}/problems/{problem_id}",
+        headers=superuser_token_headers,
+    )
+    assert resp_super.status_code == 200
+    samples_super = resp_super.json()["samples"]
+    assert len(samples_super) == 3
+    assert samples_super[2]["input"] == "in3"
+
+    # 3. Create an active contest
+    now = datetime.now(timezone.utc)
+    contest = Contest(
+        title="Ongoing Contest",
+        start_at=now - timedelta(hours=1),
+        end_at=now + timedelta(hours=1),
+    )
+    db.add(contest)
+    db.commit()
+    db.refresh(contest)
+
+    # 4. Link the problem to the contest
+    link = ContestProblems(
+        contest_id=contest.id,
+        problem_id=uuid.UUID(problem_id),
+    )
+    db.add(link)
+    db.commit()
+
+    # 5. Verify normal user only gets the first 2 samples
+    resp_normal = client.get(
+        f"{settings.API_V1_STR}/problems/{problem_id}",
+        headers=normal_user_token_headers,
+    )
+    assert resp_normal.status_code == 200
+    samples_normal = resp_normal.json()["samples"]
+    assert len(samples_normal) == 2
+    assert samples_normal[0]["input"] == "in1"
+    assert samples_normal[1]["input"] == "in2"
+
+    # Clean up
+    db.delete(link)
+    db.delete(contest)
+    db_problem = db.get(Problem, uuid.UUID(problem_id))
+    if db_problem:
+        db.delete(db_problem)
+    db.commit()

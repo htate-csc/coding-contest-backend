@@ -1,3 +1,4 @@
+import os
 from collections.abc import Generator
 
 import pytest
@@ -12,8 +13,25 @@ from tests.utils.user import authentication_token_from_email
 from tests.utils.utils import get_superuser_token_headers
 
 
+def _assert_safe_test_database() -> None:
+    if os.getenv("ALLOW_REMOTE_TEST_DB") == "1":
+        return
+
+    allowed_hosts = {"localhost", "127.0.0.1", "0.0.0.0", "db"}
+    if settings.POSTGRES_SERVER in allowed_hosts:
+        return
+
+    pytest.exit(
+        "Refusing to run tests against a non-local database. "
+        "Set POSTGRES_SERVER to a local test database, or set "
+        "ALLOW_REMOTE_TEST_DB=1 only if you intentionally want this.",
+        returncode=2,
+    )
+
+
 @pytest.fixture(scope="session", autouse=True)
 def db() -> Generator[Session, None, None]:
+    _assert_safe_test_database()
     with Session(engine) as session:
         init_db(session)
         yield session
